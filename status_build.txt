@@ -1,0 +1,175 @@
+STEP 3: BUILD
+
+Code generation starts now.
+
+ΓÇìΓÇïTime to use the toolbox. ΓÇìΓÇïYou are going to find two performance bugs in the service, and the rule is clear: you must use a tool to identify each one. ΓÇïΓÇïCode reading is not allowed as your primary investigation method. ΓÇïΓÇïYou can read code to understand what a tool is showing you ΓÇö but the tool must lead you to the problem, not your eyes scanning files.
+
+ΓÇïΓÇïBug #6 ΓÇö Memory Leak From Unclosed DB Connections
+
+Here is the symptom: the service crashes after approximately 2,000 requests. ΓÇïΓÇïNo useful error message ΓÇö just a process exit, a connection timeout, or an out-of-memory kill. ΓÇïΓÇïWorks fine for the first thousand. ΓÇîΓÇïSomewhere around 1,500 to 2,000, it slows down. ΓÇîΓÇïThen it dies.
+
+ΓÇîΓÇïIf you read the code, everything looks correct. ΓÇîΓÇîConnection pool, error handling, proper responses. ΓÇîΓÇïYou could read it for an hour and miss the bug, because the bug is not in what the code says ΓÇö it is in what the code does at runtime when errors occur.
+
+ΓÇîΓÇïYour task: prove where the memory is going using a profiler.
+
+ΓÇïΓÇïNode.js Track
+
+1. ΓÇîΓÇîStart the service with the --inspect flag: node --inspect src/server.js (or equivalent for your entry point). ΓÇîΓÇîThis opens a debugging port that Chrome DevTools can connect to.
+ΓÇïΓÇï2. ΓÇïΓÇïOpen Chrome and navigate to chrome://inspect. ΓÇîΓÇïYou will see your Node.js process listed. ΓÇïΓÇïClick "inspect" to open DevTools.
+ΓÇïΓÇï3. ΓÇîΓÇïGo to the Memory tab. ΓÇîΓÇïTake a heap snapshot ΓÇö this captures everything currently in memory.
+ΓÇîΓÇï4. ΓÇïΓÇïNow send 500 requests to the service (use a script or for i in $(seq 1 500); do curl -s http://localhost:3000/health > /dev/null; done).
+ΓÇîΓÇï5. ΓÇîΓÇïTake another heap snapshot.
+ΓÇîΓÇï6. ΓÇîΓÇîCompare the two snapshots. ΓÇîΓÇïWhat grew? ΓÇîΓÇïHow many objects were allocated between snapshot 1 and snapshot 2?
+
+ΓÇïΓÇïAlternative approach if DevTools feels heavy: add this to your code temporarily:
+
+setInterval(() => {
+  const used = process.memoryUsage();
+  console.log(`Memory: RSS=${Math.round(used.rss / 1024 / 1024)}MB, Heap=${Math.round(used.heapUsed / 1024 / 1024)}MB`);
+}, 5000);
+
+Send requests gradually and watch the numbers. ΓÇïΓÇïIf memory grows linearly and never drops, you have a leak.
+
+ΓÇîΓÇïPython Track
+
+1. ΓÇîΓÇïAdd tracemalloc to your application startup:
+
+import tracemalloc
+tracemalloc.start()
+
+2. ΓÇîΓÇïAdd a debug endpoint that reports memory stats:
+
+@app.get("/debug/memory")
+def memory_stats():
+    snapshot = tracemalloc.take_snapshot()
+    top_stats = snapshot.statistics("lineno")
+    return {"top_allocations": [str(s) for s in top_stats[:10]]}
+
+3. ΓÇîΓÇîSend 500 requests. ΓÇîΓÇïHit the /debug/memory endpoint. ΓÇîΓÇïNote the top allocations.
+ΓÇïΓÇî4. ΓÇîΓÇïSend another 500 requests. ΓÇïΓÇïHit /debug/memory again. ΓÇïΓÇîWhat grew?
+
+ΓÇîΓÇîAlternatively, use memray for a visual memory profile: python -m memray run app/main.py, then send traffic and analyze the output.
+
+ΓÇïΓÇïWhat the profiler reveals
+
+The profiler shows connection objects accumulating. ΓÇïΓÇïMemory grows linearly with requests. ΓÇîΓÇïThe objects held are database connection instances ΓÇö created but never garbage collected.
+
+ΓÇïΓÇïTrace why. ΓÇîΓÇîLook at the code that acquires a database connection. ΓÇîΓÇïYou will find a pattern like this (pseudocode):
+
+try:
+    connection = pool.acquire()
+    result = connection.query(...)
+    ΓÇîΓÇîconnection.release()    // <-- only happens on success
+    return result
+catch error:
+    log(error)
+    return error_response
+    // <-- connection is NEVER released here
+
+The connection is acquired at the top of the try block. ΓÇîΓÇïIf the query succeeds, the connection is released. ΓÇîΓÇîBut if an error occurs, execution jumps to the catch/except block, and the release() call never happens. ΓÇïΓÇïThat connection is now leaked ΓÇö the pool thinks it is still in use, but nobody is using it. ΓÇîΓÇîDo this 2,000 times and the pool is exhausted.
+
+ΓÇïΓÇïThe fix
+
+Move the connection release to a finally block ΓÇö code that runs whether the operation succeeds or fails:
+
+try:
+    connection = pool.acquire()
+    result = connection.query(...)
+    ΓÇïΓÇïreturn result
+catch error:
+    log(error)
+    return error_response
+finally:
+    if connection:
+        connection.release()    // <-- runs no matter what
+
+Verify the fix
+
+Run 2,000 requests against the service. ΓÇîΓÇïMonitor memory throughout. ΓÇîΓÇïIt should stay flat ΓÇö minor GC fluctuations are fine, but no upward trend. ΓÇïΓÇïConnection object count should stay constant (equal to pool size), not grow with request count.
+
+ΓÇîΓÇïPAUSE. ΓÇîΓÇïThe code looked correct if you only read the happy path. ΓÇîΓÇîThe profiler saw the real execution path ΓÇö the one where errors happen. ΓÇïΓÇïThe code tells you what should happen. ΓÇïΓÇïThe profiler tells you what does happen.
+
+ΓÇîΓÇï---
+
+Bug #7 ΓÇö N+1 Query on the Links Endpoint
+
+Here is the symptom: the /links endpoint takes over 3 seconds to respond with just 50 rows. ΓÇîΓÇîNobody changed the code recently. ΓÇïΓÇîIt used to be fast. ΓÇîΓÇïNow it is not.
+
+ΓÇîΓÇïIf you read the code, the endpoint looks correct. ΓÇîΓÇïIt queries for links, includes related data, and the ORM configuration specifies eager loading ΓÇö meaning "fetch related data in the same query, not separate queries." ΓÇïΓÇîEverything looks right.
+
+ΓÇîΓÇîYour task: prove what queries are actually hitting the database.
+
+ΓÇîΓÇïEnabling Query Logging
+
+You need to see the actual SQL queries the ORM is generating. ΓÇïΓÇîThere are two ways:
+
+Database-side logging (Postgres):
+
+Set log_min_duration_statement = 0 in your PostgreSQL configuration (or the Docker Compose environment). ΓÇîΓÇïThis tells Postgres to log every query, no matter how fast. ΓÇîΓÇïThen tail the Postgres logs while you hit the /links endpoint.
+
+ΓÇîΓÇïORM-side logging:
+
+- Node.js (Sequelize): Set logging: console.log in the Sequelize constructor options.
+ΓÇîΓÇî- Node.js (TypeORM): Set logging: true in the connection options.
+ΓÇïΓÇï- Python (SQLAlchemy): Set echo=True on the engine: create_engine(url, echo=True).
+
+ΓÇïΓÇîWhat the query log reveals
+
+Hit GET /links once and look at the output. ΓÇïΓÇïYou will see something like this:
+
+SELECT * FROM links ORDER BY created_at DESC LIMIT 50;
+SELECT * FROM analytics WHERE link_id = 1;
+SELECT * FROM analytics WHERE link_id = 2;
+SELECT * FROM analytics WHERE link_id = 3;
+...
+ΓÇîΓÇîSELECT * FROM analytics WHERE link_id = 50;
+
+Fifty-one queries. ΓÇïΓÇïOne to get the list of links. ΓÇïΓÇîFifty to get the analytics for each link individually. ΓÇïΓÇïThat is the N+1 pattern ΓÇö 1 query for the list, N queries for the related data.
+
+ΓÇîΓÇîBut wait ΓÇö the ORM configuration specifies eager loading. ΓÇîΓÇîWhy is it firing lazy queries?
+
+ΓÇïΓÇïThis is where the bug gets subtle. ΓÇïΓÇïCheck the ORM version. ΓÇïΓÇîA recent update (or a dependency bump in package-lock.json or requirements.txt) changed the default eager loading behavior. ΓÇîΓÇïWhat used to be the default ΓÇö joining related tables in a single query ΓÇö now falls back to lazy loading unless you explicitly configure it. ΓÇïΓÇïThe config still says "eager," but the ORM silently ignores it because the syntax or option name changed between versions.
+
+ΓÇîΓÇìThis is a category of bug that code reading almost never catches. ΓÇîΓÇìThe code looks right. The configuration looks right. But the runtime behavior changed because a dependency updated its defaults.
+
+Using EXPLAIN to understand query performance
+
+While you have query logging enabled, use EXPLAIN ANALYZE to see how Postgres executes each query:
+
+EXPLAIN ANALYZE SELECT * FROM analytics WHERE link_id = 1;
+
+This shows you the query plan ΓÇö how Postgres decides to find your data. You will see whether it uses an index (fast ΓÇö like a book's index) or a sequential scan (slow ΓÇö like reading every page). For the N+1 problem, each individual query might be fast, but 50 fast queries is still much worse than 1 slightly larger query.
+
+The fix
+
+Explicitly configure eager loading in a way that the current ORM version respects. The exact syntax depends on your ORM:
+
+Node.js (Sequelize):
+
+const links = await Link.findAll({
+  include: [{ model: Analytics, required: false }],
+  limit: 50,
+  order: [['createdAt', 'DESC']]
+});
+
+Python (SQLAlchemy):
+
+links = db.session.query(Link).options(
+    joinedload(Link.analytics)
+).order_by(Link.created_at.desc()).limit(50).all()
+
+Or write a raw JOIN query if the ORM is fighting you:
+
+SELECT links.*, analytics.click_count
+FROM links
+LEFT JOIN analytics ON analytics.link_id = links.id
+ORDER BY links.created_at DESC
+LIMIT 50;
+
+Verify the fix
+
+1. Hit GET /links with query logging enabled. You should see 1 or 2 queries ΓÇö not 51.
+2. Measure the response time. It should be under 200ms with 50 rows.
+3. Run EXPLAIN ANALYZE on the JOIN query to confirm it uses indexes.
+
+---

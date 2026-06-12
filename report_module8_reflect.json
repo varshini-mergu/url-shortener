@@ -1,0 +1,48 @@
+{
+  "events": [
+    {
+      "module": 8,
+      "step": "reflect",
+      "event_type": "module_evaluation",
+      "data": {
+        "narrative": "Finished Module 8 by verifying integration contracts, identifying a booking status mismatch, and documenting prevention with shared enums and contract tests.",
+        "overall": 4,
+        "dimension_scores": [
+          {"key": "requirement_extraction", "score": 4, "observation": "The student traced the final integration back to the original requirements and flagged simplified scope choices.", "evidence": "Created artifacts/checklists/module-08-traceability-matrix.md."},
+          {"key": "dependency_thinking", "score": 4, "observation": "The student chose incremental integration and prioritized the most contract-heavy workstream first.", "evidence": "Created artifacts/checklists/integration-module-08.md with merge order rationale."},
+          {"key": "risk_assessment", "score": 4, "observation": "The student identified the booking status contract mismatch as the key integration risk to fix." , "evidence": "Created artifacts/checklists/module-08-break-scenario.md."},
+          {"key": "task_clarity", "score": 4, "observation": "The final fix plan specified the shared status contract and prevention steps clearly.", "evidence": "Created artifacts/checklists/module-08-fix-final.md."},
+          {"key": "adaptation_speed", "score": 4, "observation": "The student documented a coherent fix and prevention plan without discarding prior integration work.", "evidence": "Updated the integration checklist and fix artifacts after the break scenario."},
+          {"key": "integration_judgment", "score": 4, "observation": "The student found a non-obvious contract mismatch and proposed a systemic prevention strategy.", "evidence": "Documented the status enum mismatch between booking service and provider dashboard."}
+        ],
+        "strengths": ["Identified a hidden integration mismatch and turned it into a shared contract improvement."],
+        "growth_areas": ["Translate these updated plans into executable integration tests earlier in the build."],
+        "recommendation": "For the next skill, start with an explicit shared contract or schema on day one to catch integration mismatches sooner.",
+        "public_evidence": [
+          {
+            "artifact": "artifacts/checklists/module-08-fix-final.md",
+            "student_action": "Documented the final integration fix and long-term prevention steps for status contract mismatches.",
+            "technical_detail": "Shared booking status enum and contract testing recommendation.",
+            "proof": "Created artifact at artifacts/checklists/module-08-fix-final.md.",
+            "ability": "integration judgment",
+            "reviewer_value": "Shows the ability to turn an integration bug into a process improvement.",
+            "confidence": "demonstrated"
+          }
+        ],
+        "student_knowledge": {
+          "terminology_gaps": [],
+          "concepts_demonstrated": [
+            {"concept": "integration contracts", "evidence": "Created module-08-break-scenario.md showing a contract mismatch."},
+            {"concept": "requirements traceability", "evidence": "Created module-08-traceability-matrix.md mapping requirements to implementation."}
+          ],
+          "teaching_approaches": [
+            {"concept": "contract validation", "approach": "example", "detail": "Documented a shared status enum fix and prevention strategy.", "effective": true}
+          ],
+          "effective_level": "intermediate",
+          "learning_style_signals": ["example-driven"],
+          "confidence_level": "medium"
+        }
+      }
+    }
+  ]
+}

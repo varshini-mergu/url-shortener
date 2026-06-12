@@ -1,0 +1,48 @@
+{
+  "events": [
+    {
+      "module": 7,
+      "step": "reflect",
+      "event_type": "module_evaluation",
+      "data": {
+        "narrative": "Updated the existing Module 7 adaptation plan twice to absorb company accounts and role-based access, while preserving progress and keeping the demo scope focused.",
+        "overall": 4,
+        "dimension_scores": [
+          {"key": "requirement_extraction", "score": 4, "observation": "The student unpacked the Meridian request into company accounts, delegation, roles, and department visibility.", "evidence": "Created artifacts/adaptation/module-07-change-update.md with the updated role-based access model."},
+          {"key": "dependency_thinking", "score": 4, "observation": "The student revised the blast radius and plan when the second requirement arrived, preserving the existing build where possible.", "evidence": "Updated artifacts/adaptation/module-07-change-update.md and module-07-fix-notes.md to show layered changes."},
+          {"key": "risk_assessment", "score": 4, "observation": "The student identified the risk of the role logic taking extra time and flagged the department-head view as potentially deferred.", "evidence": "Documented risk in artifacts/adaptation/module-07-change-update.md."},
+          {"key": "task_clarity", "score": 4, "observation": "The revised plan specified which tickets were preserved, modified, cut, and added with clear estimates.", "evidence": "Created artifacts/adaptation/module-07-change-update.md with explicit ticket scope."},
+          {"key": "adaptation_speed", "score": 4, "observation": "The student updated the plan twice under changing requirements instead of starting over.", "evidence": "Created module-07-change-update.md and module-07-fix-notes.md to capture three plan versions."},
+          {"key": "integration_judgment", "score": 4, "observation": "The student reasoned about where roles belong in the data model and how booking endpoints enforce permissions.", "evidence": "Detailed authorization and model notes in artifacts/adaptation/module-07-fix-notes.md."}
+        ],
+        "strengths": ["Preserved the original build while evolving the plan through two requirement changes."],
+        "growth_areas": ["Continue turning edited plans into executable backlog items with more precise acceptance criteria."],
+        "recommendation": "Begin Module 8 with a shared contract or schema for the updated booking and role-based access APIs to avoid drift during integration.",
+        "public_evidence": [
+          {
+            "artifact": "artifacts/adaptation/module-07-change-update.md",
+            "student_action": "Revised the Module 7 plan to include role-based access and department visibility while preserving previous work.",
+            "technical_detail": "Updated the company account adaptation plan and scope after Meridian added role requirements.",
+            "proof": "Created artifact at artifacts/adaptation/module-07-change-update.md.",
+            "ability": "mid-build adaptation",
+            "reviewer_value": "Shows the ability to adjust scope and maintain a coherent plan under changing requirements.",
+            "confidence": "demonstrated"
+          }
+        ],
+        "student_knowledge": {
+          "terminology_gaps": [],
+          "concepts_demonstrated": [
+            {"concept": "role-based access", "evidence": "Outlined manager, employee, and department head permissions in module-07-fix-notes.md."},
+            {"concept": "blast radius", "evidence": "Updated the Module 7 blast radius analysis to reflect the second change."}
+          ],
+          "teaching_approaches": [
+            {"concept": "change adaptation", "approach": "example", "detail": "Layered a second requirement on top of an existing adaptation plan.", "effective": true}
+          ],
+          "effective_level": "intermediate",
+          "learning_style_signals": ["example-driven"],
+          "confidence_level": "medium"
+        }
+      }
+    }
+  ]
+}

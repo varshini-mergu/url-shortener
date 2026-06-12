@@ -1,0 +1,23 @@
+STEP 5: BREAK
+
+You shipped the cache invalidation fix for Bug #9. ΓÇìΓÇïΓÇìΓÇïΓÇïΓÇïΓÇïDeleted links now immediately 404. ΓÇïΓÇïΓÇïΓÇïΓÇïΓÇïΓÇïThe queue retry fix for Bug #10 is in place. ΓÇîΓÇïΓÇîΓÇïΓÇîΓÇïΓÇîThe API stays responsive even when jobs fail. ΓÇîΓÇîΓÇïΓÇîΓÇïΓÇïΓÇïBoth fixes are correct. ΓÇîΓÇîΓÇîΓÇîΓÇïΓÇïΓÇïBoth are well-tested.
+
+ΓÇïΓÇîΓÇïΓÇïΓÇïΓÇïΓÇïSomething new is wrong.
+
+ΓÇîΓÇïΓÇîΓÇïΓÇîΓÇïΓÇïAfter your deployment, the analytics team reports a problem: "We are seeing duplicate analytics events. ΓÇïΓÇîΓÇïΓÇîΓÇïΓÇîΓÇïEvery time a link is deleted and then re-created with the same short code, the analytics job for that link processes twice. ΓÇîΓÇîΓÇîΓÇïΓÇîΓÇïΓÇïOur click counts are doubling for re-created links."
+
+ΓÇïΓÇïΓÇïΓÇîΓÇïΓÇîΓÇïThis was not happening before your fix. ΓÇîΓÇïΓÇîΓÇîΓÇîΓÇïΓÇîYour deployment introduced this bug.
+
+ΓÇïΓÇïΓÇîΓÇîΓÇïΓÇïΓÇïDo not panic. ΓÇïΓÇîΓÇîΓÇîΓÇïΓÇïΓÇïBut do not dismiss it either. ΓÇïΓÇîΓÇïΓÇïΓÇïΓÇîΓÇîThink about what you changed. ΓÇîΓÇïΓÇîΓÇîΓÇîΓÇïΓÇîYou added a cache.del() call to the delete handler. ΓÇîΓÇïΓÇïΓÇîΓÇîΓÇïΓÇïThat was the correct fix for Bug #9. ΓÇïΓÇïΓÇîΓÇïΓÇîΓÇïΓÇïBut something else is happening as a consequence.
+
+ΓÇïΓÇîΓÇïΓÇîΓÇïΓÇîΓÇîHere is what you know:
+- The problem only affects links that are deleted and re-created.
+ΓÇïΓÇïΓÇïΓÇïΓÇîΓÇïΓÇî- The problem manifests as duplicate analytics processing.
+ΓÇîΓÇïΓÇîΓÇîΓÇïΓÇîΓÇï- The problem started after you deployed the cache invalidation fix.
+ΓÇîΓÇïΓÇïΓÇîΓÇîΓÇîΓÇî- The analytics processing is handled by the queue worker.
+
+ΓÇïΓÇïΓÇîΓÇîΓÇïΓÇîΓÇïSomething about your cache invalidation is interfering with the queue worker. ΓÇîΓÇïΓÇîΓÇîΓÇïΓÇïΓÇïBut how? ΓÇîΓÇïΓÇïΓÇîΓÇîΓÇïΓÇïYour fix deleted a cache key for redirect data. ΓÇïΓÇîΓÇïΓÇïΓÇîΓÇîΓÇîWhat does the queue worker have to do with redirect cache keys?
+
+ΓÇîΓÇïΓÇïΓÇïΓÇïΓÇïΓÇîSit with this. ΓÇîΓÇïΓÇïΓÇïΓÇîΓÇìΓÇîForm a hypothesis before reading further.
+
+ΓÇì---

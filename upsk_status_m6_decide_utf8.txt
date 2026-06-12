@@ -1,0 +1,31 @@
+STEP 2: DECIDE (Investigation Strategy)
+
+No code generation yet.
+
+ΓÇìΓÇïΓÇìΓÇïΓÇïΓÇïYou are about to receive two bug reports. ΓÇïΓÇïΓÇïΓÇïΓÇïΓÇïBefore you see them, you need to pick an investigation strategy. ΓÇïΓÇïΓÇîΓÇïΓÇîΓÇïThere are two valid approaches, and your choice will shape how efficiently you find these bugs.
+
+ΓÇîΓÇïΓÇîΓÇîΓÇîΓÇïOption A: Horizontal investigation.
+
+ΓÇîΓÇïΓÇïΓÇïΓÇîΓÇîCheck each layer in parallel. ΓÇîΓÇîΓÇïΓÇïΓÇïΓÇïOpen three terminal windows. ΓÇîΓÇïΓÇïΓÇïΓÇïΓÇïQuery the cache. ΓÇîΓÇïΓÇîΓÇïΓÇîΓÇïQuery the database. ΓÇïΓÇïΓÇîΓÇïΓÇîΓÇïCheck the queue. ΓÇîΓÇïΓÇîΓÇîΓÇîΓÇïLook for anything obviously wrong in each layer independently. ΓÇîΓÇïΓÇïΓÇïΓÇïΓÇïThis is fast if you get lucky -- if the bug manifests as something visibly broken in one layer, you will spot it quickly.
+
+ΓÇîΓÇïΓÇîΓÇïΓÇîΓÇïThe risk: horizontal investigation checks each component in isolation. ΓÇîΓÇîΓÇîΓÇïΓÇîΓÇïThat is exactly the condition under which these bugs do not appear. ΓÇïΓÇîΓÇîΓÇïΓÇïΓÇïEach layer looks fine alone. ΓÇïΓÇîΓÇîΓÇîΓÇïΓÇïThe cache is caching, the database is storing, the queue is queuing. ΓÇïΓÇïΓÇîΓÇïΓÇïΓÇïYou will check three healthy components and conclude that nothing is wrong, while the system is on fire.
+
+ΓÇîΓÇîΓÇîΓÇïΓÇîΓÇîOption B: Vertical investigation.
+
+ΓÇîΓÇïΓÇîΓÇîΓÇïΓÇïPick a single request -- one specific action, like "delete a link and try to access it" -- and follow it through every layer from start to finish. ΓÇîΓÇîΓÇïΓÇïΓÇïΓÇïWatch it enter the API, see what the API does with the database, see what happens in the cache, see what the queue does. ΓÇîΓÇïΓÇîΓÇïΓÇïΓÇïTrace one request through the entire stack, like following a single package through a shipping warehouse.
+
+ΓÇîΓÇïΓÇîΓÇïΓÇîΓÇîThis is slower to start. ΓÇïΓÇïΓÇïΓÇïΓÇîΓÇïYou cannot parallelize it. ΓÇîΓÇîΓÇïΓÇîΓÇîΓÇïBut it reveals the exact handoff where things go wrong, because you are watching the interaction between layers, not the layers themselves.
+
+ΓÇîΓÇïΓÇîΓÇïΓÇïΓÇîThink about these questions before you decide:
+
+- When would horizontal investigation beat vertical? ΓÇîΓÇîΓÇîΓÇïΓÇïΓÇîThink about what kind of bug would show up in a single layer. ΓÇîΓÇïΓÇîΓÇïΓÇîΓÇïIf the database were down, horizontal would find it instantly. ΓÇîΓÇîΓÇïΓÇïΓÇïΓÇîBut is the database down?
+
+ΓÇïΓÇïΓÇîΓÇîΓÇïΓÇï- If each layer's health check passes but the system is broken, what does that tell you about where the bug lives? ΓÇïΓÇîΓÇïΓÇïΓÇîΓÇîNot in any layer. ΓÇîΓÇîΓÇïΓÇïΓÇïΓÇïIn between them.
+
+ΓÇïΓÇîΓÇîΓÇïΓÇïΓÇï- How do you debug something that only breaks when components interact? ΓÇîΓÇìΓÇîΓÇìCan you even see an interaction bug without following a request through the interaction?
+
+Pick your approach and explain your reasoning. "Vertical because it is better" is not a decision. "Vertical because we know each layer passes its own health checks, so the bug is likely in the handoff between layers, which only a vertical trace would reveal" is a decision.
+
+Your choice will be recorded as decisions.module_06.investigation_strategy.
+
+---

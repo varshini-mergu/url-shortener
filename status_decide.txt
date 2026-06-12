@@ -1,0 +1,59 @@
+STEP 2: DECIDE
+
+No code generation yet.
+
+ΓÇìΓÇïΓÇìΓÇïYou have two decisions to make before we start investigating the performance issues in this service.
+
+ΓÇïΓÇïΓÇïΓÇïDecision 1 ΓÇö Profiling Strategy
+
+Decision key: decisions.module_04.profiling_strategy
+
+You need to profile the running service to find what is consuming resources. ΓÇïΓÇïΓÇïΓÇïThe question is: how do you instrument it?
+
+ΓÇïΓÇïΓÇîΓÇïOption A: APM Integration
+
+APM stands for Application Performance Monitoring ΓÇö think of it as hiring a full-time observer who watches your service 24/7, records everything, and builds dashboards so you can see trends over time. ΓÇîΓÇïΓÇîΓÇïTools like Datadog, New Relic, and Dynatrace fall into this category. ΓÇîΓÇîΓÇîΓÇïYou install their agent, and it automatically instruments your code ΓÇö wrapping your functions, timing your queries, tracking your memory. ΓÇîΓÇïΓÇïΓÇïYou get dashboards, alerts, and historical trends without writing any measurement code yourself.
+
+ΓÇîΓÇîΓÇîΓÇîThe tradeoff: APM tools cost money ΓÇö sometimes a lot of money. ΓÇïΓÇïΓÇïΓÇïThey add a small overhead to every request (the observer has to watch, and watching takes resources). ΓÇîΓÇïΓÇïΓÇïThey create vendor lock-in. ΓÇïΓÇïΓÇîΓÇïBut they give you a holistic view: you can see that today's response time is 3x what it was last Tuesday, and you can drill into which endpoint degraded and why.
+
+ΓÇîΓÇïΓÇîΓÇïOption B: Manual Profiling
+
+Manual profiling uses built-in tools that come free with your language runtime. ΓÇïΓÇïΓÇîΓÇïIn Node.js, that is the --inspect flag combined with Chrome DevTools, or logging process.memoryUsage() at intervals. ΓÇîΓÇïΓÇîΓÇïIn Python, that is cProfile for CPU, tracemalloc for memory tracking, or py-spy for sampling profiles of a running process.
+
+ΓÇîΓÇîΓÇîΓÇïThe tradeoff: free, no vendor lock-in, no agent overhead, and you control exactly what gets measured. ΓÇîΓÇïΓÇïΓÇïBut it requires manual effort every time you investigate. ΓÇïΓÇïΓÇîΓÇïYou do not get dashboards or alerts. ΓÇîΓÇïΓÇîΓÇïYou are not observing the system all the time ΓÇö only when you decide to look.
+
+ΓÇîΓÇîΓÇîΓÇïProbing questions ΓÇö I want you to think about these before answering:
+
+- At what team size does an APM tool start paying for itself? ΓÇîΓÇïΓÇïΓÇîOne engineer? ΓÇîΓÇïΓÇïΓÇïFive? ΓÇïΓÇîΓÇîΓÇîTwenty?
+ΓÇïΓÇïΓÇïΓÇï- Can you safely profile a production service? ΓÇîΓÇïΓÇïΓÇïWhat are the risks of attaching a profiler to a live system handling real traffic?
+ΓÇîΓÇîΓÇîΓÇï- If you can only afford one ΓÇö CPU profiling or memory profiling ΓÇö which do you pick and why? ΓÇîΓÇîΓÇîΓÇïWhat class of bugs would you miss with that choice?
+
+ΓÇîΓÇîΓÇïΓÇïThere is no wrong answer here. ΓÇîΓÇîΓÇïΓÇïBoth approaches work. ΓÇïΓÇïΓÇîΓÇïI want to hear your reasoning.
+
+ΓÇîΓÇïΓÇïΓÇïDecision 2 ΓÇö Inspection Scope
+
+Decision key: decisions.module_04.inspection_scope
+
+You know the service has performance problems. ΓÇîΓÇïΓÇîΓÇïHow do you decide where to point your profiler?
+
+ΓÇîΓÇîΓÇïΓÇïOption A: Broad Inspection
+
+Profile the whole service. ΓÇïΓÇïΓÇîΓÇïAttach the profiler, run a general load test, and look at the results. ΓÇîΓÇîΓÇïΓÇîThis is like turning on a thermal camera and scanning the entire house ΓÇö you see every warm spot, including ones you did not expect.
+
+ΓÇîΓÇïΓÇîΓÇïThe upside: you might find problems you were not looking for. ΓÇîΓÇïΓÇïΓÇîThe downside: profiling data is noisy. ΓÇîΓÇîΓÇîΓÇïYou might spend 20 minutes looking at a function that is "hot" because it runs on every request, not because it is doing anything wrong.
+
+ΓÇïΓÇîΓÇîΓÇïOption B: Targeted Inspection
+
+Start with a hypothesis about which endpoint is problematic and profile only that. ΓÇîΓÇïΓÇîΓÇïThis is hypothesis-first debugging applied to profiling. ΓÇîΓÇîΓÇïΓÇïSmaller dataset, clearer signal.
+
+ΓÇïΓÇîΓÇïΓÇïThe upside: faster, cleaner results. ΓÇîΓÇîΓÇïΓÇïThe downside: if your hypothesis is wrong, you profiled the wrong thing and might miss problems in places you did not think to look.
+
+ΓÇïΓÇîΓÇïΓÇïProbing questions:
+
+- Which approach would you use when you have no idea what is wrong?
+ΓÇîΓÇîΓÇîΓÇî- Which approach would you use when a specific user reports a specific endpoint is slow?
+ΓÇïΓÇïΓÇïΓÇï- Is there a way to combine both? ΓÇïΓÇîΓÇîΓÇïStart broad, then narrow?
+
+ΓÇïΓÇïΓÇîΓÇìTell me your choices and reasoning for both decisions.
+
+ΓÇîΓÇì---

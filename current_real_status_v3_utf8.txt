@@ -1,0 +1,23 @@
+STEP 4: VERIFY
+
+Now let us examine how well you understood what just happened. ΓÇìΓÇïΓÇìΓÇïΓÇïThese are not softball questions. ΓÇïΓÇïΓÇïΓÇïΓÇïThis is Module 06.
+
+ΓÇïΓÇïΓÇïΓÇïΓÇîFor Bug #10, draw me the chain of causation. ΓÇïΓÇîΓÇïΓÇîΓÇïIn text, right now. ΓÇîΓÇîΓÇîΓÇïΓÇîStart from the initial job failure and end at the API going down. ΓÇïΓÇïΓÇïΓÇîΓÇîHow many steps are in the chain? ΓÇîΓÇîΓÇïΓÇïΓÇïWhat is the longest gap between cause and symptom in terms of system layers crossed?
+
+ΓÇïΓÇîΓÇïΓÇïΓÇïIf you cannot trace this chain from memory, you have not internalized the bug. ΓÇïΓÇïΓÇîΓÇïΓÇîYou have only fixed the code. ΓÇïΓÇîΓÇïΓÇïΓÇïGo back and re-read the chain until you can reproduce it without looking.
+
+ΓÇîΓÇïΓÇîΓÇïΓÇîFor Bug #9, why did nobody notice during development? ΓÇïΓÇîΓÇîΓÇîΓÇïThis is not a trick question, but I want the real answer, not a surface-level one. ΓÇîΓÇïΓÇïΓÇïΓÇï"Because nobody tested it" is insufficient. ΓÇïΓÇîΓÇïΓÇîΓÇïWhy did nobody test it? ΓÇîΓÇïΓÇîΓÇîΓÇîWhat about the development workflow made this bug invisible? ΓÇïΓÇîΓÇïΓÇïΓÇîThink about how often developers delete links during manual testing versus how often they create and read them. ΓÇîΓÇïΓÇïΓÇïΓÇïThink about the cache TTL. ΓÇîΓÇîΓÇîΓÇïΓÇïThink about what "the bug fixes itself after 5 minutes" means for manual QA.
+
+ΓÇïΓÇïΓÇîΓÇïΓÇïIf you could add one monitoring alert to catch Bug #10 early, what would it measure? ΓÇïΓÇîΓÇîΓÇîΓÇïNot "monitor everything." ΓÇîΓÇîΓÇîΓÇïΓÇîOne alert. ΓÇîΓÇïΓÇïΓÇîΓÇîWhat single metric, if it crossed a threshold, would have woken you up before the API went down? ΓÇïΓÇïΓÇïΓÇïΓÇîThink about which step in the causal chain is the earliest detectable signal.
+
+ΓÇïΓÇîΓÇïΓÇïΓÇïRed Flags
+
+I am watching for three specific failure modes in your answers:
+
+- Cannot trace the causal chain for Bug #10. ΓÇîΓÇïΓÇîΓÇïΓÇîIf you just know "the queue was broken" but cannot explain HOW queue retries led to API unavailability through connection pool exhaustion, you are treating the symptom, not understanding the disease. ΓÇîΓÇïΓÇïΓÇïΓÇïA tech lead who cannot explain a cascading failure to their team will not prevent the next one.
+
+ΓÇîΓÇïΓÇîΓÇîΓÇï- Fix for Bug #9 is "lower the cache TTL." ΓÇîΓÇîΓÇïΓÇîΓÇïThis is the most common wrong answer. ΓÇîΓÇïΓÇïΓÇîΓÇîLowering the TTL from 5 minutes to 30 seconds does not fix the bug -- it reduces the window. ΓÇîΓÇîΓÇïΓÇïΓÇîThe deleted link still redirects for 30 seconds. ΓÇîΓÇïΓÇîΓÇïΓÇîThat is not acceptable. ΓÇïΓÇîΓÇîΓÇïΓÇïThe correct fix is explicit invalidation. ΓÇïΓÇîΓÇïΓÇïΓÇîStale data for 30 seconds is still stale data.
+
+ΓÇîΓÇïΓÇïΓÇïΓÇî- Fix for Bug #10 is "increase the connection pool." ΓÇïΓÇïΓÇîΓÇîΓÇîThis treats the symptom. ΓÇîΓÇïΓÇïΓÇïΓÇïA bigger pool just means the storm takes slightly longer to exhaust it. ΓÇïΓÇîΓÇîΓÇïΓÇïThirty seconds instead of five. ΓÇïΓÇîΓÇìΓÇîΓÇìYou have bought time, not solved the problem. The correct fix addresses the cause: backoff, retry limits, and pool isolation.
+
+---

@@ -1,0 +1,80 @@
+STEP 3: BUILD -- The Iteration Challenge
+
+Code generation starts now.
+
+ΓÇìΓÇïΓÇìNow you apply your strategy to a real task. ΓÇïΓÇïΓÇïYou are building the real-time activity feed with WebSocket updates -- the piece of the Team Collaboration feature that pushes live events to connected clients.
+
+ΓÇïΓÇïΓÇïThis task is deliberately chosen. ΓÇïΓÇïΓÇïReal-time features are where AI agents struggle the most. ΓÇïΓÇïΓÇîThey require correct handling of connection lifecycle (open, close, error, reconnect), concurrent state (multiple clients, multiple channels), and event ordering. ΓÇïΓÇîΓÇïAI agents tend to produce demos that work for one client in a happy-path scenario and fall apart under real conditions.
+
+ΓÇîΓÇïΓÇîExpect your first output to need iteration. ΓÇîΓÇîΓÇïThat is the point.
+
+ΓÇîΓÇïΓÇïThe Iteration Log
+
+Before you write your first prompt, set up your iteration log. ΓÇïΓÇîΓÇîYou will track every iteration with this format:
+
+Iteration: [1, 2, 3, or 4]
+Type: [initial | refinement | restart]
+Structural quality: [1-5]
+Surface quality: [1-5]
+Key issues found: [list]
+Decision: [refine | restart | ship]
+Reasoning: [why this decision]
+
+Structural quality rubric:
+
+- 1: Wrong approach entirely. ΓÇîΓÇîΓÇïCannot be salvaged.
+ΓÇïΓÇïΓÇï- 2: Partially right idea, but critical architectural flaw (wrong pattern, wrong boundaries).
+ΓÇîΓÇïΓÇï- 3: Sound approach with one significant structural gap (missing reconnection model, no channel isolation).
+ΓÇïΓÇïΓÇï- 4: Good architecture with minor structural concerns (could handle edge cases better, scaling story is unclear).
+ΓÇîΓÇïΓÇî- 5: Clean architecture, correct patterns, would pass an architecture review.
+
+ΓÇïΓÇîΓÇïSurface quality rubric:
+
+- 1: Barely functional. ΓÇïΓÇïΓÇîMajor gaps in implementation.
+ΓÇïΓÇîΓÇï- 2: Partially implemented. ΓÇîΓÇïΓÇîMultiple missing pieces (stubs, TODOs, incomplete error handling).
+ΓÇîΓÇîΓÇï- 3: Functional but rough. ΓÇîΓÇïΓÇïWorks for happy path, missing edge cases and polish.
+ΓÇïΓÇïΓÇï- 4: Good implementation. ΓÇîΓÇïΓÇîHandles most cases, minor naming or convention issues.
+ΓÇïΓÇîΓÇï- 5: Production-ready. ΓÇîΓÇîΓÇîClean code, proper error handling, follows all conventions.
+
+ΓÇïΓÇîΓÇïRound 1: The Initial Prompt
+
+Write your prompt for the real-time activity feed. ΓÇïΓÇîΓÇîInclude:
+
+- What the feature does (push team activity events to connected clients via WebSocket)
+- Architectural context from your codebase (existing patterns, conventions, middleware)
+- Constraints (must handle connection, disconnection, reconnection; must scope events to teams; must integrate with existing auth)
+- Expected output structure (which files, what format)
+
+Run the prompt. ΓÇïΓÇïΓÇïReview the output. ΓÇïΓÇîΓÇîRate it on both dimensions. ΓÇîΓÇïΓÇïLog it.
+
+ΓÇïΓÇïΓÇîIf your initial output scores structural >= 3: proceed to refinement. ΓÇïΓÇïΓÇïIdentify the specific surface issues and write a targeted follow-up prompt for each one (or batch related fixes).
+
+ΓÇîΓÇîΓÇîIf your initial output scores structural < 3: stop. ΓÇïΓÇîΓÇîDo not refine. ΓÇîΓÇïΓÇîRestart. ΓÇîΓÇïΓÇïWrite a new prompt that takes a different approach. ΓÇîΓÇîΓÇïUse what you learned from the first output -- what went wrong structurally -- to inform the new prompt. ΓÇïΓÇïΓÇïMaybe you need to specify the event architecture explicitly. ΓÇîΓÇïΓÇîMaybe you need to include an example of how events flow through the system. ΓÇïΓÇïΓÇïMaybe you need to constrain the agent away from the approach it chose.
+
+ΓÇîΓÇïΓÇîRound 2: First Refinement (or Restart)
+
+If refining: write a follow-up prompt that addresses the specific issues from Round 1. ΓÇïΓÇîΓÇîBe surgical. ΓÇïΓÇïΓÇïDo not say "make it better." ΓÇïΓÇîΓÇïSay exactly what is wrong and exactly what the fix should look like. ΓÇîΓÇîΓÇïExample:
+
+Bad follow-up: "The WebSocket handling needs improvement."
+
+ΓÇîΓÇîΓÇïGood follow-up: "The WebSocket connection does not handle unexpected disconnections. ΓÇîΓÇïΓÇîAdd a heartbeat mechanism that pings every 30 seconds. ΓÇïΓÇïΓÇîIf no pong is received within 10 seconds, close the connection and clean up the subscription. ΓÇîΓÇîΓÇîOn the client reconnection, resubscribe to the team channel and replay events missed since the last received event timestamp."
+
+ΓÇïΓÇïΓÇîRate the output again. ΓÇîΓÇïΓÇîLog it. ΓÇïΓÇîΓÇïIs quality improving? ΓÇîΓÇîΓÇïStructural score should stay the same or go up. ΓÇïΓÇïΓÇîSurface score should go up. ΓÇïΓÇïΓÇîIf either goes down, you have a problem.
+
+ΓÇîΓÇïΓÇïIf restarting: write a completely new prompt in a fresh conversation. ΓÇïΓÇîΓÇïIncorporate the lessons from Round 1. ΓÇïΓÇîΓÇîBe explicit about the architecture you want. ΓÇîΓÇîΓÇïIf the agent chose HTTP polling, specify WebSocket. ΓÇïΓÇïΓÇïIf it coupled to the database, specify service-layer events. ΓÇïΓÇîΓÇîIf it ignored auth, make auth a hard constraint.
+
+ΓÇïΓÇïΓÇïRate the restart output. ΓÇîΓÇìΓÇîLog it. ΓÇìThis is now your new baseline.
+
+Round 3: Second Refinement
+
+Same process. Targeted follow-up. Rate. Log. Check trajectory.
+
+At this point, apply the two-iteration rule (if that is your strategy). Look at your log. Are scores improving? Flat? Declining? If they are not clearly improving, you have one iteration left and a decision to make.
+
+Round 4: Final Iteration
+
+This is your last shot. Either a final refinement to polish, or a last-resort restart if the trajectory has gone wrong.
+
+After this iteration, you ship whatever you have. Four iterations is the budget. Period.
+
+---

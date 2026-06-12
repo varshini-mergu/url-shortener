@@ -1,0 +1,37 @@
+STEP 1: CONTEXT
+
+No code generation yet.
+
+ΓÇìΓÇïΓÇìEverything you have debugged so far lived in one place. ΓÇïΓÇïΓÇïThe env var was wrong in one file. ΓÇïΓÇïΓÇïThe pagination was off in one query. ΓÇïΓÇïΓÇïThe race condition was in one endpoint. ΓÇïΓÇïΓÇîEven the auth bypass was a single middleware with a single bad check. ΓÇïΓÇîΓÇïYou could point at a line of code and say "that is the bug."
+
+ΓÇîΓÇïΓÇîThat ends now.
+
+ΓÇîΓÇîΓÇïThe hardest bugs in production systems do not live in any single component. ΓÇîΓÇïΓÇïThey live in the spaces between components -- the handshake between your cache and your database, the feedback loop between your queue and your connection pool, the assumption one system makes about another. ΓÇïΓÇîΓÇîEach part works perfectly in isolation. ΓÇîΓÇîΓÇïYou can test the cache -- it caches correctly. ΓÇïΓÇïΓÇïYou can test the database -- it stores and retrieves correctly. ΓÇîΓÇïΓÇïYou can test the queue -- it processes jobs correctly. ΓÇïΓÇïΓÇïEverything passes. ΓÇîΓÇïΓÇîAnd the system is broken.
+
+ΓÇïΓÇîΓÇïThis is like a traffic accident at an intersection where each driver followed the rules. ΓÇïΓÇïΓÇîThe light was green in both directions. ΓÇïΓÇîΓÇïNo single driver made a mistake. ΓÇîΓÇïΓÇîThe failure was in the coordination between the traffic light and the intersection design. ΓÇîΓÇîΓÇïBlaming any one driver would miss the point entirely.
+
+ΓÇîΓÇïΓÇïOr think of it this way. ΓÇïΓÇïΓÇïYou have three musicians. ΓÇîΓÇïΓÇîEach one is playing their part perfectly -- correct notes, correct tempo. ΓÇïΓÇîΓÇïBut they are each playing in a different key. ΓÇîΓÇîΓÇîIndividually, each performance sounds fine. ΓÇïΓÇîΓÇïTogether, it is noise. ΓÇïΓÇîΓÇîThe bug is not in any musician. ΓÇïΓÇïΓÇïThe bug is in the missing agreement between them.
+
+ΓÇïΓÇîΓÇîWhy This Matters In Production
+
+Multi-layer bugs cause the longest outages in the industry. ΓÇîΓÇïΓÇïNot because they are hard to fix -- most of them are a few lines of code once you find them. ΓÇïΓÇïΓÇîThey are devastating because they resist the standard debugging approach. ΓÇïΓÇïΓÇïYou check the cache: healthy. ΓÇîΓÇîΓÇîYou check the database: healthy. ΓÇïΓÇîΓÇîYou check the queue: healthy. ΓÇîΓÇïΓÇîEvery health check passes. ΓÇîΓÇïΓÇïEvery component reports green. ΓÇîΓÇîΓÇïSo you stand there staring at a system that insists it is fine while users are screaming that it is not.
+
+ΓÇïΓÇïΓÇïThe reason is that health checks test components in isolation. ΓÇîΓÇïΓÇîThey ask the cache "can you cache?" ΓÇïΓÇïΓÇïand the database "can you store?" ΓÇîΓÇïΓÇîand the queue "can you process?" ΓÇïΓÇîΓÇîBut nobody asks "when the cache has data and the database deletes it, does the cache know?" ΓÇïΓÇïΓÇïNobody asks "when the queue retries a job, does it share the same resource pool as the API?" ΓÇïΓÇîΓÇïThe contracts between components -- the assumptions each one makes about the others -- are invisible until they break.
+
+ΓÇîΓÇîΓÇïTwo concepts are going to matter in this module. ΓÇîΓÇîΓÇïLet me introduce them now so you have the vocabulary.
+
+ΓÇîΓÇïΓÇîConnection pool exhaustion. ΓÇïΓÇïΓÇîA connection pool is a set of reusable database connections that your application maintains, so it does not have to open a new connection for every request. ΓÇîΓÇîΓÇîThink of it like a parking lot -- there are a fixed number of spaces. ΓÇïΓÇïΓÇîWhen a request needs the database, it parks in a space. ΓÇîΓÇïΓÇîWhen it is done, it leaves and the space is available for the next request. ΓÇïΓÇîΓÇïConnection pool exhaustion is what happens when every space fills up and nobody leaves. ΓÇîΓÇîΓÇïThe lot "works" -- it has spaces, the gates are open, the signs are on. ΓÇïΓÇïΓÇîBut every space is occupied. ΓÇïΓÇïΓÇîNew cars line up at the entrance, waiting. ΓÇîΓÇïΓÇïThe lot is technically functional and practically useless. ΓÇïΓÇîΓÇïWhen your connection pool is exhausted, every API request that needs the database sits in line, waiting for a connection that never frees up. ΓÇïΓÇîΓÇîThe API does not crash -- it just stops responding. ΓÇîΓÇîΓÇïWhich, from the user's perspective, is the same thing.
+
+ΓÇïΓÇïΓÇïCascading failure. ΓÇïΓÇîΓÇîThis is when one failure causes another, which causes another, in a chain reaction. ΓÇïΓÇïΓÇïThink of a freeway pile-up. ΓÇîΓÇìΓÇîOne car stops suddenly. ΓÇìThe car behind it brakes too late and rear-ends it. The car behind that one cannot stop either. The wave of collisions travels backward, and cars a mile away -- cars that had nothing to do with the original stop -- are now stuck or damaged. In software, a cascading failure is when a problem in one component (like a queue worker retrying too aggressively) creates resource pressure that chokes a completely different component (like the API). The symptom appears far from the cause, and the trail between them is invisible unless you trace the whole chain.
+
+Micro-Exercise
+
+Before we touch any code, map the system boundaries.
+
+1. Name three boundaries in our service where two systems hand off data to each other. Not components -- boundaries. The places where one system sends data and another system receives it.
+
+2. At each boundary, what assumption does the receiver make about the sender? For example: when the API reads from the cache, it assumes the cache has current data. Is that assumption documented anywhere? Is it enforced by anything? Or is it just... believed?
+
+Take a minute. Write them down. If you cannot name three boundaries, you do not yet understand the architecture of this service well enough to debug it. That is fine -- but you need to build that map before we go further.
+
+---

@@ -1,0 +1,14 @@
+{
+  "top_allocations": [
+    "<frozen importlib._bootstrap_external>:753: size=16.7 MiB, count=134962, average=130 B",
+    "<frozen abc>:106: size=1118 KiB, count=4273, average=268 B",
+    "C:\\Users\\Varshini\\anaconda3\\Lib\\typing.py:904: size=353 KiB, count=3677, average=98 B",
+    "C:\\Users\\Varshini\\anaconda3\\Lib\\dataclasses.py:473: size=341 KiB, count=3446, average=101 B",
+    "<frozen importlib._bootstrap>:488: size=317 KiB, count=2695, average=121 B",
+    "C:\\Users\\Varshini\\anaconda3\\Lib\\site-packages\\sqlalchemy\\util\\langhelpers.py:302: size=280 KiB, count=123, average=2332 B",
+    "C:\\Users\\Varshini\\anaconda3\\Lib\\site-packages\\sqlalchemy\\sql\\annotation.py:555: size=273 KiB, count=1166, average=240 B",
+    "<frozen abc>:107: size=212 KiB, count=1111, average=195 B",
+    "C:\\Users\\Varshini\\anaconda3\\Lib\\typing.py:2901: size=211 KiB, count=919, average=235 B",
+    "C:\\Users\\Varshini\\anaconda3\\Lib\\enum.py:596: size=206 KiB, count=607, average=348 B"
+  ]
+}

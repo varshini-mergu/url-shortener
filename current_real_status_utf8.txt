@@ -1,0 +1,104 @@
+STEP 3: BUILD
+
+Code generation starts now.
+
+ΓÇìΓÇïTwo bug reports just came in. ΓÇìΓÇïThese are the last two bugs in this service, and they are the hardest. ΓÇïΓÇïThey are not harder because the code is more complex. ΓÇïΓÇïThey are harder because the bug is not in the code. ΓÇïΓÇïIt is in the architecture.
+
+ΓÇïΓÇïBug #9: Stale Cache Serving Deleted Records
+
+The report reads: "I deleted a short link through the admin API. ΓÇïΓÇïThe DELETE request returned 200. ΓÇîΓÇïBut when I try the short link, it still redirects. ΓÇîΓÇïThe link I deleted is still working."
+
+ΓÇîΓÇïStop. ΓÇîΓÇîHypotheses first. ΓÇîΓÇïYou know the drill by now, and at this stage I expect sharper hypotheses than you were writing in Module 01. ΓÇîΓÇïNot "maybe the database" -- specific, architectural hypotheses about which layer boundary might be broken.
+
+ΓÇïΓÇïWhy would a deleted link still redirect? ΓÇîΓÇîThink about every system involved in a redirect: the API receives the request, checks somewhere for the target URL, and returns a 302. ΓÇîΓÇîWhere is "somewhere"?
+
+ΓÇïΓÇïHypothesis 1: "The DELETE did not actually remove the record from the database." ΓÇïΓÇïMaybe the delete handler has a bug. ΓÇîΓÇïMaybe it returned 200 without actually completing the delete. ΓÇïΓÇïThe link is still in the DB, so of course it still redirects.
+
+ΓÇïΓÇïTest: Query the database directly. ΓÇîΓÇïRun a SELECT against the links table for the deleted link ID. ΓÇîΓÇïIs it there or not?
+
+ΓÇîΓÇïHypothesis 2: "The database deleted it, but something else is still serving the link." ΓÇïΓÇïThe redirect path may not hit the database at all -- it might be reading from a cache layer. ΓÇîΓÇïIf the cache still has the link, the redirect will work even though the database does not have it anymore.
+
+ΓÇîΓÇïTest: Check Redis directly. ΓÇîΓÇïRun GET on the cache key for the deleted link. ΓÇîΓÇîIs there a cached value?
+
+ΓÇîΓÇïGo test them.
+
+ΓÇîΓÇïHere is what you will find. ΓÇïΓÇïThe database does NOT have the link. ΓÇïΓÇïHypothesis 1 is disproven -- the delete worked. ΓÇîΓÇïThe database did its job. ΓÇîΓÇïBut Redis DOES have the link, with the full cached redirect URL. ΓÇîΓÇïHypothesis 2 is confirmed.
+
+ΓÇîΓÇîNow trace the code. ΓÇîΓÇïLook at the delete handler: DELETE /links/:id. ΓÇîΓÇïFollow every line. ΓÇïΓÇîWhat does it do?
+
+ΓÇîΓÇïIt calls db.delete(id). ΓÇïΓÇïIt returns 200. ΓÇïΓÇîThat is it.
+
+ΓÇîΓÇîWhat does it NOT do? ΓÇïΓÇïIt does not call cache.del(id). ΓÇïΓÇïIt does not touch Redis at all. ΓÇîΓÇïThe delete handler talks to the database and ignores the cache entirely.
+
+ΓÇïΓÇïNow look at the redirect handler: GET /:shortCode. ΓÇîΓÇîIt checks the cache first. ΓÇîΓÇïIf the cache has the link, it redirects immediately without ever querying the database. ΓÇîΓÇîThe cache has a TTL of 5 minutes, so the deleted link will keep working for up to 5 minutes after deletion.
+
+ΓÇîΓÇïThe fix: Add cache invalidation to the delete handler. ΓÇîΓÇîAfter db.delete(id), add cache.del(cacheKeyForLink(id)). ΓÇïΓÇïOne line of code.
+
+ΓÇîΓÇîVerify: Delete a link. ΓÇïΓÇïImmediately try to access it. ΓÇïΓÇïYou should get a 404, not a redirect. ΓÇîΓÇïNo 5-minute wait. ΓÇîΓÇïImmediate invalidation.
+
+ΓÇïΓÇïPause: The Lesson of Bug #9
+
+I need you to internalize something here, because this pattern will haunt you for your entire career.
+
+ΓÇîΓÇïEach component was correct. ΓÇîΓÇïThe database received a delete command and deleted the record. ΓÇîΓÇîCorrect behavior. ΓÇïΓÇïThe cache received a read request and returned the data it had. ΓÇïΓÇïCorrect behavior. ΓÇîΓÇïThe delete handler called the database and returned success. ΓÇîΓÇîCorrect behavior. ΓÇïΓÇîEvery component did exactly what it was supposed to do. ΓÇîΓÇïAnd the system was wrong.
+
+ΓÇîΓÇïThe bug was not in the cache. ΓÇîΓÇïThe bug was not in the database. ΓÇïΓÇîThe bug was not in the delete handler. ΓÇîΓÇîThe bug was in a missing connection -- a line of code that should have existed but did not. ΓÇîΓÇïThe delete handler needed to tell the cache "this data is gone now," and nobody wrote that line.
+
+ΓÇïΓÇîThis is what makes multi-layer bugs so insidious. ΓÇîΓÇïYou cannot find them by testing components. ΓÇîΓÇïYou cannot find them by reading one file. ΓÇîΓÇïYou can only find them by understanding the contract between components and checking whether that contract is honored at every operation -- not just reads, not just writes, but also deletes, updates, and edge cases.
+
+ΓÇîΓÇîWhy did nobody notice during development? ΓÇïΓÇïBecause in development, you create links and test them. ΓÇïΓÇîYou rarely delete them. ΓÇïΓÇïAnd even when you do, the 5-minute TTL means the cache eventually expires and the problem "fixes itself." ΓÇîΓÇîThe bug is real, but it is quiet. ΓÇïΓÇïIt only matters when someone deletes a link and expects it to actually be gone -- which in production, with real users, happens constantly.
+
+ΓÇïΓÇîBug #10: Queue Retry Storm
+
+The report reads: "The entire API has become unresponsive. ΓÇïΓÇïNo error messages. ΓÇîΓÇîNo crashes. ΓÇîΓÇîIt just... ΓÇïΓÇïstopped responding. ΓÇïΓÇïRequests hang indefinitely. ΓÇïΓÇîThe health check times out."
+
+ΓÇîΓÇïThis is the hardest bug you have faced. ΓÇïΓÇïTake it seriously. ΓÇîΓÇìThe symptom -- API unresponsive -- has no obvious connection to the cause. ΓÇîΓÇìThere are no errors in the API logs because the API is not throwing errors. It is not crashing. It is waiting. Waiting for something it will never get.
+
+Start with your hypotheses. What could make an API hang without errors?
+
+Hypothesis 1: "The API process is stuck or deadlocked." Maybe an infinite loop, a deadlock, or a hanging synchronous operation.
+
+Test: Check the API process. Is it consuming CPU? Is it responsive to signals? Can you get a thread dump or process snapshot? If it were stuck in a loop, CPU would be pegged. If it were deadlocked, a thread dump would show it.
+
+Hypothesis 2: "The API is waiting for a shared resource that is not available." Every API request that touches the database needs a connection from the connection pool. If the pool is exhausted -- every connection is checked out and none are being returned -- then all new requests will queue up, waiting for a connection. No error. No crash. Just... waiting.
+
+Test: Check the connection pool stats. How many connections are in use? How many are available? Is the pool at capacity?
+
+Test Hypothesis 2. Check the connection pool. You will find it is at 100% utilization. Every single connection is in use. Zero available. The API requests are all waiting in line for a database connection that will never come.
+
+But here is the question that separates a competent debugger from an exceptional one: who is holding all the connections?
+
+It is not the API requests -- they are the ones waiting. Something else checked out all the connections and is not returning them. What else in this system uses the database?
+
+The queue worker.
+
+Check the queue worker. What is it doing? It is retrying failed jobs. Look at the retry configuration: no backoff delay (retries happen immediately), no maximum retry count (retries continue forever). A single failed job triggers an infinite loop of immediate retries. Each retry attempt acquires a database connection, hits the same error that caused the original failure, and immediately tries again. It never releases the connection back to the pool before grabbing another one. Within seconds, the queue worker has consumed every available connection.
+
+Here is the chain of causation. Follow it carefully:
+
+1. A queue job fails (for any reason -- bad data, temporary DB hiccup, anything)
+2. The queue worker retries immediately (no backoff)
+3. Each retry acquires a DB connection from the shared pool
+4. The retry fails again (same error)
+5. The worker retries again immediately (no max retry count)
+6. Steps 3-5 repeat in a tight loop
+7. The shared connection pool is exhausted within seconds
+8. API requests that need the database cannot get a connection
+9. API requests hang indefinitely, waiting for connections
+10. The entire API becomes unresponsive
+11. Health checks (which also need the database) time out
+12. Monitoring reports the API as down
+
+Twelve steps from "one queue job failed" to "the entire API is down." The symptom is at step 12. The root cause is at step 1. The design flaws are at steps 2, 5, and 7 (no backoff, no retry limit, shared connection pool).
+
+The fix has three parts. All three are necessary. Any one alone is insufficient.
+
+1. Add exponential backoff to queue retries. Instead of retrying immediately, wait 1 second, then 2 seconds, then 4, then 8, and so on. This prevents the tight loop that burns through connections. Exponential backoff is a pattern where each retry waits twice as long as the previous one -- like a polite person who knocks on a door, waits, knocks again, waits longer, instead of pounding continuously.
+
+2. Set a maximum retry count. After 5 retries (or whatever is appropriate), mark the job as permanently failed and move it to a dead-letter queue for manual inspection. Jobs that fail forever should not retry forever.
+
+3. Use a separate connection pool for queue workers. The queue worker and the API should not share the same connection pool. Give the queue worker its own smaller pool (say, 3 connections out of a total of 20). Even if the queue worker exhausts its own pool, the API's 17 connections remain available. This is resource isolation -- the same principle as bulkheads on a ship. If one compartment floods, the walls prevent the water from sinking the whole vessel.
+
+Verify: Trigger a queue job failure deliberately. Watch the retry behavior -- it should back off exponentially. After the max retries, the job should land in the dead-letter queue. Throughout this entire process, make API requests. They should respond normally. The API should never become unresponsive because of queue worker behavior.
+
+---
